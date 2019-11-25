@@ -7,17 +7,15 @@ uses
 
 type
   TArrOfDouble = array of double;
-  TFunc = function(Gens: TArrOfDouble; target, eps: double; var fitness: double; var success: boolean): double;
   TBot = class
     target: double;  //цель может быть набором
     fitness: double;       // приспособленность при ранжировании в популяции
     Gens: TArrOfDouble;
     Success: boolean;    // расчет сошелся
     eps: double;        // точность
-    GetFitness: TFunc;                // рассчитать приспособленность
-    constructor Create(_Gens: TArrOfDouble; Func: TFunc); overload;
-    constructor Create(NGens: integer; maxV, minV: integer; _target, _eps: double; Func: TFunc); overload;
-    function _MyGetFit: double;
+    constructor Create(_Gens: TArrOfDouble); overload;
+    constructor Create(NGens: integer; maxV, minV: integer; _target, _eps: double); overload;
+    function GetFitness: double;                // рассчитать приспособленность
     procedure Mutation;                         // мутировать
     function Selection(_Parent: TBot): TBot;    //скрещивание
     procedure AssignBot(_Bot: TBot);           //ассоциировать
@@ -29,7 +27,7 @@ type
      MaxAge: integer;
      NGood: integer;  // до какого значения хорошие невключительно
      Pobeditel: TBot;
-     constructor Create(CounBots, _MaxAge, NGens, maxV, minV, _NGood: integer; _target, _eps: double; Func: TFunc); overload;
+     constructor Create(CounBots, _MaxAge, NGens, maxV, minV, _NGood: integer; _target, _eps: double); overload;
      function CalcAge: boolean;     // рассчитать поколение
      procedure SortFitness;  // ранжировать от большего к меньшему
      procedure DeadPopul;  // уменьшение популяции
@@ -41,7 +39,7 @@ implementation
 
 { TBot }
 
-constructor TBot.Create(_Gens: TArrOfDouble; Func: TFunc);
+constructor TBot.Create(_Gens: TArrOfDouble);
 var
   i: integer;
 begin
@@ -49,10 +47,9 @@ begin
   SetLength(Gens, Length(_Gens));
   for i:=0 to Length(_Gens)-1 do
     Gens[i]:=_Gens[i];
-  GetFitness:=Func;
 end;
 
-constructor TBot.Create(NGens: integer; maxV, minV: integer; _target, _eps: double; Func: TFunc);
+constructor TBot.Create(NGens: integer; maxV, minV: integer; _target, _eps: double);
 var
   i: integer;
   x: double;
@@ -69,9 +66,15 @@ begin
     x:=random;
     Gens[i]:=maxV*x+(1-x)*minV;
   end;
-  GetFitness:=Func;
 end;
 
+
+function TBot.GetFitness: double;
+begin
+  result:=abs(Gens[0]+2*Gens[1]+3*Gens[2]+4*Gens[3] - target);  // тут меняем
+  fitness:=result;
+  if result<=eps then Success:=true;
+end;
 
 procedure TBot.Mutation;
 var
@@ -93,7 +96,7 @@ function TBot.Selection(_Parent: TBot): TBot;
 var
   r, i: integer;
 begin
-  result:=TBot.Create(Gens, _Parent.GetFitness);
+  result:=TBot.Create(Gens);
   r:=random(Length(Gens));
   result.target:=self.target;
   result.eps:=self.eps;
@@ -113,11 +116,6 @@ begin
   //можно добавить и другие скрещивания
 end;
 
-function TBot._MyGetFit: double;
-begin
-  result:=GetFitness(Gens, target, eps, fitness, success);
-end;
-
 procedure TBot.AssignBot(_Bot: TBot);
 var
   i: integer;
@@ -126,12 +124,10 @@ begin
   self.fitness:=_Bot.fitness;
   self.Success:=_Bot.Success;
   self.eps:=_Bot.eps;
-  self.GetFitness:=_Bot.GetFitness;
 
   SetLength(self.Gens, Length(_Bot.Gens));
   for i:= 0 to Length(_Bot.Gens)-1 do
     self.Gens[i]:=_Bot.Gens[i];
-
 
 end;
 
@@ -146,7 +142,6 @@ begin
   eps:=0;
 end;
 
-
 { TPopulation }
 
 function TPopulation.CalcAge: boolean;
@@ -160,7 +155,7 @@ begin
   SetLength(botfitness, length(Bots));
   for i:=0 to length(Bots)-1 do
   begin
-    botfitness[i]:= Bots[i]._MyGetFit;
+    botfitness[i]:= Bots[i].GetFitness;
   end;
   for i:=0 to length(Bots)-1 do
   begin
@@ -188,7 +183,7 @@ begin
 
 end;
 
-constructor TPopulation.Create(CounBots, _MaxAge, NGens, maxV, minV, _NGood: integer; _target, _eps: double; Func: TFunc);
+constructor TPopulation.Create(CounBots, _MaxAge, NGens, maxV, minV, _NGood: integer; _target, _eps: double);
 var
   i: integer;
 begin
@@ -197,7 +192,7 @@ begin
   MaxAge:=_MaxAge;
   for i:=0 to CounBots-1 do
   begin
-    Bots[i]:=TBot.Create(NGens, maxV, minV, _target, _eps, Func);
+    Bots[i]:=TBot.Create(NGens, maxV, minV, _target, _eps);
   end;
 
 end;
@@ -235,7 +230,7 @@ begin
   for i := 0 to NGood-1 do
     Bots[i+NGood].AssignBot(Bots[i]);
   for i := NGood to 2*NGood-1 do
-    Bots[i].Mutation;
+    Bots[i].AssignBot(Bots[i].Mutation);
 
 end;
 
@@ -244,7 +239,7 @@ var
   i, x, y: integer;
 begin
   randomize;
-  for i:= 2*NGood to Length(Bots)-1 do
+  for i:= NGood to Length(Bots)-1 do
   begin
     x:=random(NGood-1);
     y:=random(NGood-1);

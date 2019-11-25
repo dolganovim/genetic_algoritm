@@ -29,7 +29,7 @@ type
      MaxAge: integer;
      NGood: integer;  // до какого значения хорошие невключительно
      Pobeditel: TBot;
-     constructor Create(CounBots, _MaxAge, NGens, maxV, minV, _NGood: integer; _target, _eps: double; Func: TFunc); overload;
+     constructor Create(CounBots, _MaxAge, NGens, maxV, minV, _NGood: integer; _target, _eps: double); overload;
      function CalcAge: boolean;     // рассчитать поколение
      procedure SortFitness;  // ранжировать от большего к меньшему
      procedure DeadPopul;  // уменьшение популяции
@@ -126,12 +126,10 @@ begin
   self.fitness:=_Bot.fitness;
   self.Success:=_Bot.Success;
   self.eps:=_Bot.eps;
-  self.GetFitness:=_Bot.GetFitness;
 
   SetLength(self.Gens, Length(_Bot.Gens));
   for i:= 0 to Length(_Bot.Gens)-1 do
     self.Gens[i]:=_Bot.Gens[i];
-
 
 end;
 
@@ -146,6 +144,10 @@ begin
   eps:=0;
 end;
 
+function TBot.GetFitness: TFunc;
+begin
+
+end;
 
 { TPopulation }
 
@@ -188,7 +190,7 @@ begin
 
 end;
 
-constructor TPopulation.Create(CounBots, _MaxAge, NGens, maxV, minV, _NGood: integer; _target, _eps: double; Func: TFunc);
+constructor TPopulation.Create(CounBots, _MaxAge, NGens, maxV, minV, _NGood: integer; _target, _eps: double);
 var
   i: integer;
 begin
@@ -197,7 +199,7 @@ begin
   MaxAge:=_MaxAge;
   for i:=0 to CounBots-1 do
   begin
-    Bots[i]:=TBot.Create(NGens, maxV, minV, _target, _eps, Func);
+    Bots[i]:=TBot.Create(NGens, maxV, minV, _target, _eps);
   end;
 
 end;
